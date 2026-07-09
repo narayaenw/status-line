@@ -1,12 +1,12 @@
 # Claude Code statusline
 
-Jednoduchá, ale informačně hutná **status line pro [Claude Code](https://claude.com/claude-code)** — jeden bash skript, žádné závislosti navíc kromě `jq`. Ukazuje model, zaplnění kontextu, cenu session, čas, git větev a čerpání limitů předplatného v jednom řádku.
+Jednoduchá, ale informačně hutná **status line pro [Claude Code](https://claude.com/claude-code)** — jeden bash skript, žádné závislosti navíc kromě `jq`. Ukazuje model, aktuální složku, git větev, zaplnění kontextu a čerpání limitů předplatného v jednom řádku.
 
 ```
-[Opus 4.8 (1M context) ·xhigh] 📁 youtubedb | 🌿 main± | ████░░░░░░ 47% | $1.23 | 🕐 1h 2m | ⏳ 5h:38% · 7d:72%
+[Opus 4.8 (1M context) ·xhigh] | 📁 youtubedb | 🌿 main± | Context: ████░░░░░░ 47% | Limits: 5h:38% · 7d:72%
 ```
 
-> Náhled v reálu (přidej si vlastní screenshot do `assets/`):
+> Náhled v reálu:
 >
 > ![Náhled statusline](assets/screenshot.png)
 
@@ -17,10 +17,8 @@ Jednoduchá, ale informačně hutná **status line pro [Claude Code](https://cla
 | `[Opus 4.8 (1M context) ·xhigh]` | model + reasoning effort (`·xhigh` se skryje, když ho prostředí nehlásí — třeba při API klíči) |
 | `📁 youtubedb` | aktuální složka |
 | `🌿 main±` | git větev; `±` značí necommitnuté změny (dirty working tree) |
-| `████░░░░░░ 47%` | **zaplnění kontextového okna** — desetidílný bar, který mění barvu podle naplnění |
-| `$1.23` | odhad ceny session v USD (kolik by vyšla přes API — i na předplatném je to hezká reflexe, co session „stojí") |
-| `🕐 1h 2m` | délka session |
-| `⏳ 5h:38% · 7d:72%` | **čerpání limitů předplatného** — pětihodinové okno a týdenní strop (`rate_limits` z payloadu) |
+| `Context: ████░░░░░░ 47%` | **zaplnění kontextového okna** — desetidílný bar, který mění barvu podle naplnění |
+| `Limits: 5h:38% · 7d:72%` | **čerpání limitů předplatného** — pětihodinové okno a týdenní strop (`rate_limits` z payloadu) |
 
 Barvy zaplnění kontextu i limitů:
 
@@ -33,18 +31,18 @@ Segment limitů se zobrazuje jen na předplatném Pro/Max a naskočí až po prv
 
 ## Požadavky
 
-- **bash**
+- **bash** — na Windows přes **Git Bash** (viz [Instalace → Windows](#windows))
 - **[`jq`](https://jqlang.github.io/jq/)** — parsování JSON, který Claude Code posílá na stdin (`brew install jq`)
 - **git** — volitelně; bez gitu nebo mimo repozitář se zobrazí `no-git`
 
-> Skript je defenzivní: když `jq` chybí nebo přijde nevalidní vstup, nespadne — jen zobrazí prázdné/nulové hodnoty.
+> Skript je defenzivní: když `jq` chybí nebo přijde nevalidní vstup, nespadne — jen zobrazí prázdné/nulové hodnoty. Počítá jen s celými čísly a čte git přes plumbing/porcelain, takže **nezávisí na jazyku systému** (funguje i na neanglické locale).
 
 ## Instalace
 
 1. Stáhni `statusline.sh` (klidně do `~/.claude/statusline.sh`) a nastav mu práva ke spuštění:
 
    ```bash
-   curl -o ~/.claude/statusline.sh https://raw.githubusercontent.com/<tvuj-github>/claude-code-statusline/main/statusline.sh
+   curl -o ~/.claude/statusline.sh https://raw.githubusercontent.com/faborsky/claude-code-statusline/main/statusline.sh
    chmod +x ~/.claude/statusline.sh
    ```
 
@@ -54,12 +52,23 @@ Segment limitů se zobrazuje jen na předplatném Pro/Max a naskočí až po prv
    {
      "statusLine": {
        "type": "command",
-       "command": "/Users/<ty>/.claude/statusline.sh"
+       "command": "~/.claude/statusline.sh"
      }
    }
    ```
 
+   > `~` (i `$HOME`) se expanduje správně na macOS, Linuxu **i Windows**.
+
 3. Otevři novou session — status line se objeví dole.
+
+### Windows
+
+statusLine command se na Windows spouští v **Git Bash** (a jako fallback PowerShell). Bash skript funguje beze změny, když máš nainstalovaný [Git for Windows](https://git-scm.com/download/win) (Git Bash) — což při práci s gitem skoro jistě máš:
+
+- V cestách používej **lomítka dopředu** (`~/.claude/statusline.sh` nebo `C:/Users/<ty>/.claude/statusline.sh`), ne zpětná.
+- ANSI barvy i emoji fungují (Git Bash / Windows Terminal).
+
+Bez Git Bashe (čistě PowerShell) by skript potřeboval PowerShell port — ten tu zatím není.
 
 ## Přizpůsobení
 
@@ -68,7 +77,7 @@ Celé je to jeden krátký skript, takže úpravy jsou triviální:
 - **Prahy barev kontextu a limitů** — hodnoty `50 / 70 / 90` ve funkci `pct_color`.
 - **Layout / pořadí polí** — finální `printf` na konci souboru.
 - **Délka baru** — desetidílný bar v sekci *„10-segment progress bar"*.
-- **Emoji** — `📁 🌿 🕐` v `printf` (standardní emoji, nepotřebuješ Nerd Font).
+- **Labely a emoji** — text `Context:` / `Limits:` a `📁 🌿` v `printf` (standardní emoji, nepotřebuješ Nerd Font).
 
 ## Jak se počítá kontext
 
@@ -78,7 +87,7 @@ Skript bere primárně `context_window.used_percentage` z payloadu Claude Code (
 
 Vychází ze statusline ukázané v tutoriálu **Leonarda Grigoria** — *„My actual Claude Code workflow"* ([YouTube](https://www.youtube.com/watch?v=Hhiwq1aHK7o), kanál [Build & Ship with AI](https://www.youtube.com/@leonardogrig)).
 
-Tahle verze je **podstatně upravená**: jeden `jq` průchod místo pěti, primárně přesné `used_percentage` s fallbackem, vlastní prahy barev a desetidílný bar, ošetření chyb. Díky Leonardovi za původní nápad. 🙏
+Tahle verze je **podstatně upravená**: jeden `jq` průchod místo pěti, primárně přesné `used_percentage` s fallbackem, vlastní prahy barev a desetidílný bar, labely Context:/Limits: a ošetření chyb. Díky Leonardovi za původní nápad. 🙏
 
 ## Licence
 
