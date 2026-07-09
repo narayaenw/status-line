@@ -1,9 +1,9 @@
 # Claude Code statusline
 
-Jednoduchá, ale informačně hutná **status line pro [Claude Code](https://claude.com/claude-code)** — jeden bash skript, žádné závislosti navíc kromě `jq`. Ukazuje model, zaplnění kontextu, cenu session, čas a git větev v jednom řádku.
+Jednoduchá, ale informačně hutná **status line pro [Claude Code](https://claude.com/claude-code)** — jeden bash skript, žádné závislosti navíc kromě `jq`. Ukazuje model, zaplnění kontextu, cenu session, čas, git větev a čerpání limitů předplatného v jednom řádku.
 
 ```
-[Opus 4.8 (1M context) ·xhigh] 📁 youtubedb | 🌿 main± | ████░░░░░░ 47% | $1.23 | 🕐 1h 2m
+[Opus 4.8 (1M context) ·xhigh] 📁 youtubedb | 🌿 main± | ████░░░░░░ 47% | $1.23 | 🕐 1h 2m | ⏳ 5h:38% · 7d:72%
 ```
 
 > Náhled v reálu (přidej si vlastní screenshot do `assets/`):
@@ -20,13 +20,16 @@ Jednoduchá, ale informačně hutná **status line pro [Claude Code](https://cla
 | `████░░░░░░ 47%` | **zaplnění kontextového okna** — desetidílný bar, který mění barvu podle naplnění |
 | `$1.23` | odhad ceny session v USD (kolik by vyšla přes API — i na předplatném je to hezká reflexe, co session „stojí") |
 | `🕐 1h 2m` | délka session |
+| `⏳ 5h:38% · 7d:72%` | **čerpání limitů předplatného** — pětihodinové okno a týdenní strop (`rate_limits` z payloadu) |
 
-Barvy zaplnění kontextu:
+Barvy zaplnění kontextu i limitů:
 
 - 🟢 zelená < 50 %
 - 🟡 žlutá ≥ 50 %
 - 🟠 oranžová ≥ 70 %
 - 🔴 červená ≥ 90 %
+
+Segment limitů se zobrazuje jen na předplatném Pro/Max a naskočí až po první odpovědi v session. Na Console API klíči pole `rate_limits` nechodí, takže se segment celý schová (nic nerozbije).
 
 ## Požadavky
 
@@ -62,7 +65,7 @@ Barvy zaplnění kontextu:
 
 Celé je to jeden krátký skript, takže úpravy jsou triviální:
 
-- **Prahy barev kontextu** — hodnoty `50 / 70 / 90` v sekci *„Context % color threshold"*.
+- **Prahy barev kontextu a limitů** — hodnoty `50 / 70 / 90` ve funkci `pct_color`.
 - **Layout / pořadí polí** — finální `printf` na konci souboru.
 - **Délka baru** — desetidílný bar v sekci *„10-segment progress bar"*.
 - **Emoji** — `📁 🌿 🕐` v `printf` (standardní emoji, nepotřebuješ Nerd Font).
