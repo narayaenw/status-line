@@ -2,6 +2,8 @@
 
 Jednoduchá, ale informačně hutná **status line pro [Claude Code](https://claude.com/claude-code)** — jeden bash skript, žádné závislosti navíc kromě `jq`. Ukazuje model, aktuální složku, git větev, zaplnění kontextu a čerpání limitů předplatného v jednom řádku.
 
+> 🆕 Poslední verze **1.2.0** — čistší layout s labely `Context:`/`Limits:`, bez segmentů ceny a času. Historie verzí: **[CHANGELOG.md](CHANGELOG.md)**. Chceš vědět o nových verzích? Dej repu **Watch → Custom → Releases**.
+
 ```
 [Opus 4.8 (1M context) ·xhigh] | 📁 youtubedb | 🌿 main± | Context: ████░░░░░░ 47% | Limits: 5h:38% · 7d:72%
 ```
