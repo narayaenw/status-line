@@ -5,7 +5,7 @@ Jednoduchá, ale informačně hutná **status line pro [Claude Code](https://cla
 > 🆕 Poslední verze **1.2.0** — čistší layout s labely `Context:`/`Limits:`, bez segmentů ceny a času. Historie verzí: **[CHANGELOG.md](CHANGELOG.md)**. Chceš vědět o nových verzích? Dej repu **Watch → Custom → Releases**.
 
 ```
-[Opus 4.8 (1M context) ·xhigh] | 📁 youtubedb | 🌿 main± | Context: ████░░░░░░ 47% | Limits: 5h:38% · 7d:72%
+[Opus 4.8 (1M context) ·xhigh] | 📁 youtubedb | 🌿 main± | Context: ████░░░░░░ 47% | Limits: 5h:38% ↻2h13m · 7d:72% ↻3d4h
 ```
 
 > Náhled v reálu:
@@ -20,7 +20,7 @@ Jednoduchá, ale informačně hutná **status line pro [Claude Code](https://cla
 | `📁 youtubedb` | aktuální složka |
 | `🌿 main±` | git větev; `±` značí necommitnuté změny (dirty working tree) |
 | `Context: ████░░░░░░ 47%` | **zaplnění kontextového okna** — desetidílný bar, který mění barvu podle naplnění |
-| `Limits: 5h:38% · 7d:72%` | **čerpání limitů předplatného** — pětihodinové okno a týdenní strop (`rate_limits` z payloadu) |
+| `Limits: 5h:38% ↻2h13m · 7d:72% ↻3d4h` | **čerpání limitů předplatného** — pětihodinové okno a týdenní strop (`rate_limits` z payloadu); `↻` je odpočet do resetu okna (`resets_at`), aby bylo vidět nejen kolik zbývá, ale i kdy se to obnoví |
 
 Barvy zaplnění kontextu i limitů:
 
@@ -29,7 +29,7 @@ Barvy zaplnění kontextu i limitů:
 - 🟠 oranžová ≥ 70 %
 - 🔴 červená ≥ 90 %
 
-Segment limitů se zobrazuje jen na předplatném Pro/Max a naskočí až po první odpovědi v session. Na Console API klíči pole `rate_limits` nechodí, takže se segment celý schová (nic nerozbije).
+Segment limitů se zobrazuje jen na předplatném Pro/Max a naskočí až po první odpovědi v session. Na Console API klíči pole `rate_limits` nechodí, takže se segment celý schová (nic nerozbije). Odpočet `↻` se zobrazí jen když payload obsahuje `resets_at`; formát je `3d4h` / `2h13m` / `45m`.
 
 ## Požadavky
 

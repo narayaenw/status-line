@@ -24,7 +24,7 @@ input=$(cat)
 # (e.g. missing effort) does not collapse into its neighbour.
 # Rate limits use -1 as a "missing" sentinel (fields absent on API keys
 # and until the first API response arrives).
-IFS=$'\x1f' read -r MODEL EFFORT PERCENT RL5 RL7 <<EOF
+IFS=$'\x1f' read -r MODEL EFFORT PERCENT RL5 RL7 RS5 RS7 <<EOF
 $(printf '%s' "$input" | jq -r '
   [ (.model.display_name // "?"),
     (.effort.level // ""),
@@ -33,7 +33,9 @@ $(printf '%s' "$input" | jq -r '
             then (.context_window.total_input_tokens // 0) * 100 / .context_window.context_window_size
             else 0 end)) | floor),
     ((.rate_limits.five_hour.used_percentage // -1) | floor),
-    ((.rate_limits.seven_day.used_percentage // -1) | floor)
+    ((.rate_limits.seven_day.used_percentage // -1) | floor),
+    ((.rate_limits.five_hour.resets_at // -1) | floor),
+    ((.rate_limits.seven_day.resets_at // -1) | floor)
   ] | map(tostring) | join("")' 2>/dev/null)
 EOF
 
@@ -42,6 +44,8 @@ EOF
 [ -z "$MODEL" ]   && MODEL="?"
 [ -z "$RL5" ]     && RL5=-1
 [ -z "$RL7" ]     && RL7=-1
+[ -z "$RS5" ]     && RS5=-1
+[ -z "$RS7" ]     && RS7=-1
 
 # Model label + effort (·xhigh); effort hides itself when .effort.level is absent (e.g. API key).
 if [ -n "$EFFORT" ]; then MODEL_LABEL="${MODEL} ·${EFFORT}"; else MODEL_LABEL="$MODEL"; fi
@@ -59,6 +63,7 @@ DIR=$(basename "$(pwd)")
 C_RESET=$'\033[0m'; C_CYAN=$'\033[36m'; C_GREEN=$'\033[32m'
 C_YELLOW=$'\033[33m'; C_ORANGE=$'\033[38;5;208m'; C_RED=$'\033[31m'
 C_LABEL=$'\033[90m'   # dim grey for the miniature Context:/Limits: labels
+C_RESET_IN=$'\033[38;5;250m'   # light grey for the ↻ reset countdown (readable, but softer than the %)
 
 # Shared color thresholds (context % and rate limits).
 pct_color() {
@@ -76,17 +81,31 @@ for ((i = 1; i <= 10; i++)); do
   if [ "$i" -le "$FILLED" ]; then BAR="${BAR}█"; else BAR="${BAR}░"; fi
 done
 
+# Time until a rate-limit window resets, from a unix epoch: "2h13m" / "3d4h" / "45m".
+# Empty when the timestamp is missing or already in the past.
+reset_in() {
+  local secs=$(( $1 - $(date +%s) ))
+  [ "$1" -lt 0 ] || [ "$secs" -le 0 ] && return
+  local d=$(( secs / 86400 )) h=$(( secs % 86400 / 3600 )) m=$(( secs % 3600 / 60 ))
+  if   [ "$d" -gt 0 ]; then printf '%dd%dh' "$d" "$h"
+  elif [ "$h" -gt 0 ]; then printf '%dh%02dm' "$h" "$m"
+  else                      printf '%dm' "$m"; fi
+}
+
 # Rate-limit value — empty when both fields are missing (segment hides itself).
+# Format: 5h:25% ↻2h13m · 7d:25% ↻3d4h (the ↻ part hides when resets_at is absent).
 RL=""
 if [ "$RL5" -ge 0 ]; then
   RL="$(pct_color "$RL5")5h:${RL5}%${C_RESET}"
+  T=$(reset_in "$RS5"); [ -n "$T" ] && RL="${RL} ${C_RESET_IN}↻${T}${C_RESET}"
 fi
 if [ "$RL7" -ge 0 ]; then
   [ -n "$RL" ] && RL="${RL} · "
   RL="${RL}$(pct_color "$RL7")7d:${RL7}%${C_RESET}"
+  T=$(reset_in "$RS7"); [ -n "$T" ] && RL="${RL} ${C_RESET_IN}↻${T}${C_RESET}"
 fi
 
-# Assemble: [model ·effort] | 📁 dir | 🌿 branch | Context: <bar> % | Limits: 5h/7d
+# Assemble: [model ·effort] | 📁 dir | 🌿 branch | Context: <bar> % | Limits: 5h ↻reset · 7d ↻reset
 printf "%s[%s]%s | 📁 %s | 🌿 %s | %sContext:%s %s%s%s %s%d%%%s" \
   "$C_CYAN" "$MODEL_LABEL" "$C_RESET" "$DIR" "$GIT" \
   "$C_LABEL" "$C_RESET" "$PC" "$BAR" "$C_RESET" "$PC" "$PERCENT" "$C_RESET"
